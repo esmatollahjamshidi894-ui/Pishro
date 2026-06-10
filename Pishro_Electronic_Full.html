@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>پیشرو الکترونیک | سامانه مدیریت تعمیرات</title>
+<style>
+body{font-family:tahoma;margin:0;background:#0f172a;color:#fff}
+.header{padding:20px;text-align:center;background:linear-gradient(135deg,#2563eb,#06b6d4)}
+.container{max-width:1200px;margin:auto;padding:20px}
+.card{background:#1e293b;padding:20px;border-radius:16px;margin-bottom:15px}
+input,select,textarea,button{width:100%;padding:12px;margin:5px 0;border-radius:10px;border:none}
+button{background:#06b6d4;color:#fff;font-weight:bold;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+table{width:100%;border-collapse:collapse;background:#fff;color:#000}
+th,td{border:1px solid #ddd;padding:8px}
+.stat{font-size:18px;font-weight:bold}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>پیشرو الکترونیک</h1>
+<p>سامانه ثبت تعمیرات و گارانتی 20 روزه</p>
+</div>
+
+<div class="container">
+
+<div class="card" id="loginBox">
+<h3>ورود مدیر</h3>
+<input type="password" id="pass" placeholder="رمز عبور">
+<button onclick="login()">ورود</button>
+</div>
+
+<div id="panel" style="display:none">
+
+<div class="card">
+<div class="grid">
+<input id="customer" placeholder="نام مشتری">
+<input id="phone" placeholder="شماره تماس">
+<input id="serial" placeholder="سریال دستگاه">
+<input id="price" placeholder="هزینه تعمیر">
+</div>
+
+<div class="grid">
+<select id="device">
+<option>مودم ADSL</option>
+<option>پاور کامپیوتر</option>
+<option>مانیتور</option>
+<option>شارژر لپ تاپ</option>
+<option>گیرنده دیجیتال</option>
+</select>
+
+<select id="status">
+<option>در انتظار تعمیر</option>
+<option>تعمیر شد</option>
+<option>تحویل شد</option>
+</select>
+</div>
+
+<textarea id="fault" placeholder="شرح خرابی"></textarea>
+
+<button onclick="saveRepair()">ثبت تعمیر</button>
+<button onclick="sendSMS()">ارسال پیامک</button>
+<button onclick="window.print()">چاپ</button>
+<button onclick="exportData()">خروجی پشتیبان</button>
+</div>
+
+<div class="card">
+<input id="search" placeholder="جستجو..." onkeyup="render()">
+</div>
+
+<div class="card">
+<div class="stat" id="count"></div>
+<div class="stat" id="income"></div>
+</div>
+
+<div class="card">
+<table>
+<thead>
+<tr>
+<th>کد</th>
+<th>نام</th>
+<th>دستگاه</th>
+<th>تلفن</th>
+<th>وضعیت</th>
+<th>هزینه</th>
+</tr>
+</thead>
+<tbody id="tbl"></tbody>
+</table>
+</div>
+
+</div>
+</div>
+
+<script>
+const ADMIN_PASSWORD="1234";
+let repairs=JSON.parse(localStorage.getItem("pishro_db")||"[]");
+
+function login(){
+ if(document.getElementById("pass").value===ADMIN_PASSWORD){
+   document.getElementById("loginBox").style.display="none";
+   document.getElementById("panel").style.display="block";
+ }else{
+   alert("رمز اشتباه است");
+ }
+}
+
+function saveRepair(){
+ let item={
+ id:Date.now(),
+ customer:customer.value,
+ phone:phone.value,
+ serial:serial.value,
+ device:device.value,
+ status:status.value,
+ fault:fault.value,
+ price:Number(price.value||0),
+ date:new Date().toLocaleDateString()
+ };
+ repairs.push(item);
+ localStorage.setItem("pishro_db",JSON.stringify(repairs));
+ render();
+ alert("ثبت شد");
+}
+
+function render(){
+ let q=(search.value||"").toLowerCase();
+ let html="";
+ let total=0;
+
+ repairs.filter(r=>
+   r.customer.toLowerCase().includes(q)||
+   r.phone.includes(q)||
+   r.device.toLowerCase().includes(q)
+ ).forEach(r=>{
+   total+=r.price;
+   html+=`<tr>
+   <td>${r.id}</td>
+   <td>${r.customer}</td>
+   <td>${r.device}</td>
+   <td>${r.phone}</td>
+   <td>${r.status}</td>
+   <td>${r.price}</td>
+   </tr>`;
+ });
+
+ tbl.innerHTML=html;
+ count.innerText="تعداد تعمیرات: "+repairs.length;
+ income.innerText="جمع درآمد: "+total+" تومان";
+}
+
+function sendSMS(){
+ let txt=`پیشرو الکترونیک
+مشتری: ${customer.value}
+دستگاه: ${device.value}
+وضعیت: ${status.value}
+گارانتی: 20 روز`;
+ location.href="sms:"+phone.value+"?body="+encodeURIComponent(txt);
+}
+
+function exportData(){
+ let blob=new Blob([JSON.stringify(repairs,null,2)],{type:'application/json'});
+ let a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);
+ a.download='pishro_backup.json';
+ a.click();
+}
+
+render();
+</script>
+</body>
+</html>
